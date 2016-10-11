@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Great Charts from Maximus Prime</title>
+    <meta charset="UTF-8">
+    <meta name="author" content="The great Mak">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.bundle.min.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://rawgit.com/chartjs/Chart.Zoom.js/master/Chart.Zoom.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.15.1/moment.min.js"></script>
+    <script src="https://rawgit.com/hammerjs/hammer.js/master/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+      }
+      .sidebar {
+        height: 100%;
+        width: 250px;
+        border: border: 5px solid red;
+        float: left;
+      }
+      button {
+        width: 100%;
+        height: 40px;
+      }
+      textarea {
+        width: 100%;
+      }
+      .graph {
+        margin-left: 250px;
+        border: 1px solid green;
+        height: 100%;
+        position: fixed;
+        width: 100%;
+      }
+      /*#canvas {
+          width: inherit;
+          height: inherit;
+      }*/
+    </style>
+</head>
+<body>
+  <div class="sidebar">
+    <button id="build">Build</button>
+    <textarea id="datacenter" rows="10" cols="50">Enter Data here:</textarea>
+    <button id="rZoom">Reset Zoom</button>
+  </div>
+  <div class="graph">
+		<canvas id="canvas"></canvas>
+	</div>
+  <script>
+    // build the graph
+    var timeFormat = 'MM/DD/YYYY HH:mm:ss';
+    var config = {
+      type: 'line',
+      data: {},
+      options: {
+				responsive: true,
+				title:{
+					display:true,
+					text:"Time Series Plot"
+				},
+				scales: {
+					xAxes: [{
+						type: "time",
+						time: {
+							format: timeFormat,
+							// round: 'day'
+							tooltipFormat: 'll HH:mm'
+						},
+						scaleLabel: {
+							display: true,
+							labelString: 'Date'
+						},
+						ticks: {
+							maxRotation: 0
+						}
+					}, ],
+					yAxes: [{
+						scaleLabel: {
+							display: true,
+							labelString: 'value'
+						}
+					}]
+				},
+				zoom: {
+					enabled: true,
+					drag: true,
+					mode: 'x',
+					limits: {
+						max: 10,
+						min: 0.5
+					}
+				}
+			}
+    };
+    var dPts = [];
+    var labels = [];
+
+    $('#build').on('click', function(event) {
+      data = [];
+      labels = [];
+      buildConfig($('#datacenter').val());
+    });
+
+    $('#rZoom').on('click', function (event) {
+      window.timePlot.resetZoom();
+    });
+
+    function randomColorFactor() {
+			return Math.round(Math.random() * 255);
+		}
+
+    function randomColor(opacity) {
+			return 'rgba(' + randomColorFactor() + ',' + randomColorFactor() + ',' + randomColorFactor() + ',' + (opacity || '.3') + ')';
+		}
+
+    function buildConfig(dString) {
+      lines = dString.split('\n');
+      _.each(lines, function(dPt) {
+          // dPt = 1,1/2/15 10:00:00,106.25
+          arr = dPt.split(',');
+          dt = moment(arr[1].split(' ')[0].replace(/\//g,'-')).format(timeFormat); // 1/2/15 10:00:00
+          if (labels.indexOf(dt) < 0) {
+            labels.push(dt);
+          }
+          dPts.push({
+              x: moment(arr[1].replace(/\//g,'-')).format(timeFormat),
+              y: arr[2]
+          });
+      });
+      console.log(dPts);
+      console.log(labels);
+      config.data.labels = labels;
+      config.data.datasets = [{
+        label: "Time Series Plot",
+        data: dPts
+      }];
+      config.data.datasets.forEach(function(dataset) {
+  			dataset.borderColor = randomColor(0.4);
+  			dataset.backgroundColor = randomColor(0.5);
+  			dataset.pointBorderColor = randomColor(0.7);
+  			dataset.pointBackgroundColor = randomColor(0.5);
+  			dataset.pointBorderWidth = 1;
+  		});
+
+      // finally build the bloody graph
+      window.timePlot = new Chart($('#canvas')[0].getContext('2d'), config);
+    }
+  </script>
+</body>
+
+</html>
